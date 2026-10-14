@@ -1,0 +1,207 @@
+========== SYSTEM ==========
+anastasia
+/home/anastasia/fpv_labs
+Distributor ID:	Ubuntu
+Description:	Ubuntu 22.04.5 LTS
+Release:	22.04
+Codename:	jammy
+ROS_DISTRO=humble
+========== WORKSPACE ==========
+total 360
+drwxrwxr-x  8 anastasia anastasia   4096 Oct 15 00:00 .
+drwxr-x--- 25 anastasia anastasia   4096 Oct 15 00:14 ..
+drwxrwxr-x  3 anastasia anastasia   4096 Oct 14 21:03 build
+-rw-r--r--  1 anastasia anastasia  16384 Oct 14 16:15 eeprom.bin
+drwxrwxr-x  8 anastasia anastasia   4096 Oct 12 19:03 .git
+-rw-rw-r--  1 anastasia anastasia     59 Oct 12 18:49 .gitignore
+drwxrwxr-x  3 anastasia anastasia   4096 Oct 14 21:03 install
+drwxrwxr-x  4 anastasia anastasia   4096 Oct 14 23:09 log
+-rw-rw-r--  1 anastasia anastasia  38232 Oct 12 20:02 mav.parm
+-rw-rw-r--  1 anastasia anastasia 163840 Oct 14 16:20 mav.tlog
+-rw-rw-r--  1 anastasia anastasia  98304 Oct 14 16:20 mav.tlog.raw
+-rwxrwxr-x  1 anastasia anastasia   1041 Oct 14 15:53 run_mission.sh
+drwxrwxr-x  3 anastasia anastasia   4096 Oct  9 16:21 src
+drwxrwxr-x  2 anastasia anastasia   4096 Oct  9 18:59 terrain
+src/fpv_lab2/fpv_lab2/flight_state.py
+src/fpv_lab2/fpv_lab2/flight_test_node.py
+src/fpv_lab2/fpv_lab2/handlers/arming.py
+src/fpv_lab2/fpv_lab2/handlers/handler.py
+src/fpv_lab2/fpv_lab2/handlers/hovering.py
+src/fpv_lab2/fpv_lab2/handlers/__init__.py
+src/fpv_lab2/fpv_lab2/handlers/landing.py
+src/fpv_lab2/fpv_lab2/handlers/prearm_check.py
+src/fpv_lab2/fpv_lab2/handlers/setting_guided.py
+src/fpv_lab2/fpv_lab2/handlers/taking_off.py
+src/fpv_lab2/fpv_lab2/handlers/waiting_for_landing.py
+src/fpv_lab2/fpv_lab2/handlers/waiting_for_system.py
+src/fpv_lab2/fpv_lab2/__init__.py
+src/fpv_lab2/fpv_lab2/main.py
+src/fpv_lab2/fpv_lab2/.vscode/settings.json
+src/fpv_lab2/LICENSE
+src/fpv_lab2/package.xml
+src/fpv_lab2/resource/fpv_lab2
+src/fpv_lab2/setup.cfg
+src/fpv_lab2/setup.py
+src/fpv_lab2/test/test_copyright.py
+src/fpv_lab2/test/test_flake8.py
+src/fpv_lab2/test/test_pep257.py
+========== HANDLERS ==========
+total 52
+drwxrwxr-x 3 anastasia anastasia 4096 Oct 14 21:03 .
+drwxrwxr-x 5 anastasia anastasia 4096 Oct 14 20:32 ..
+-rw-rw-r-- 1 anastasia anastasia 1099 Sep 17 21:46 arming.py
+-rw-rw-r-- 1 anastasia anastasia  242 Sep 17 21:42 handler.py
+-rw-rw-r-- 1 anastasia anastasia  752 Sep 17 21:47 hovering.py
+-rw-rw-r-- 1 anastasia anastasia  865 Sep 17 21:43 __init__.py
+-rw-rw-r-- 1 anastasia anastasia  936 Sep 17 21:48 landing.py
+-rw-rw-r-- 1 anastasia anastasia 1276 Oct 14 21:03 prearm_check.py
+drwxrwxr-x 2 anastasia anastasia 4096 Oct 14 20:17 __pycache__
+-rw-rw-r-- 1 anastasia anastasia  942 Sep 17 21:44 setting_guided.py
+-rw-rw-r-- 1 anastasia anastasia 1325 Oct 14 19:11 taking_off.py
+-rw-rw-r-- 1 anastasia anastasia  662 Oct 14 19:13 waiting_for_landing.py
+-rw-rw-r-- 1 anastasia anastasia  498 Oct 14 19:06 waiting_for_system.py
+========== NODE IMPORTS ==========
+1:from rclpy.node import Node
+2:from nav_msgs.msg import Odometry
+3:from std_srvs.srv import Trigger
+4:from ardupilot_msgs.msg import Status
+5:from ardupilot_msgs.srv import ArmMotors, ModeSwitch, Takeoff
+6:from .flight_state import FlightState
+7:from .handlers import HANDLERS
+9:class FlightTestNode(Node):
+15:    def __init__(self):
+56:    def status_callback(self, message):
+59:    def odometry_callback(self, message):
+62:    def services_ready(self):
+70:    def control_loop(self):
+75:    def call_mode_switch(self, mode, callback):
+83:    def fail(self, message):
+========== MAIN ==========
+import rclpy
+from .flight_state import FlightState
+from .flight_test_node import FlightTestNode
+
+
+def main(args=None):
+	rclpy.init(args=args)
+	node = FlightTestNode()
+	try:
+		while (
+			rclpy.ok()
+			and node.state != FlightState.FINISHED
+			and node.state != FlightState.ERROR
+		):
+			rclpy.spin_once(node, timeout_sec=0.2)
+	except KeyboardInterrupt:
+		pass
+	finally:
+		node.destroy_node()
+		if rclpy.ok():
+			rclpy.shutdown()
+
+
+if __name__ == "__main__":
+	main()
+========== SETUP.PY ==========
+from setuptools import find_packages, setup
+
+package_name = 'fpv_lab2'
+
+setup(
+    name=package_name,
+    version='0.0.0',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        (
+            'share/ament_index/resource_index/packages',
+            ['resource/' + package_name],
+        ),
+        ('share/' + package_name, ['package.xml']),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='anastasia',
+    maintainer_email='vitiv.tuska@gmail.com',
+    description='Lab 2: autonomous drone flight using ROS 2',
+    license='Apache-2.0',
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
+    entry_points={
+        'console_scripts': [
+            'flight_test = fpv_lab2.main:main',
+        ],
+    },
+)
+
+========== PACKAGE.XML ==========
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>fpv_lab2</name>
+  <version>0.0.0</version>
+  <description>Lab 2: autonomous drone flight using ROS 2</description>
+  <maintainer email="anastasia@todo.todo">anastasia</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>std_srvs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>ardupilot_msgs</depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
+
+========== LAUNCH SCRIPT ==========
+#!/bin/bash
+
+echo "=== 1. Повне очищення фонових процесів ==="
+pkill -9 -f "gz|sitl|ardupilot|micro_ros_agent|rviz2|ros2" 2>/dev/null
+sleep 3
+
+echo "=== 2. Налаштування змінних середовища та шляхів до моделей ==="
+export DISPLAY=:0
+export GZ_VERSION=harmonic
+export LIBGL_ALWAYS_SOFTWARE=1
+export GZ_SIM_RESOURCE_PATH=$HOME/ardu_ws/src:$HOME/ardu_ws/src/ardupilot_gazebo/models:$HOME/ardu_ws/src/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH
+export SDF_PATH=$HOME/ardu_ws/src/ardupilot_gazebo/models:$SDF_PATH
+
+source /opt/ros/humble/setup.bash
+source ~/ardu_ws/install/setup.bash
+source ~/fpv_labs/install/setup.bash
+
+echo "=== 3. Запуск Gazebo + ArduPilot SITL ==="
+ros2 launch ardupilot_gz_bringup iris_runway.launch.py rviz:=false &
+
+echo "=== 4. Очікування ініціалізації EKF / GPS (45 секунд) ==="
+sleep 45
+
+echo "=== 5. Запуск автономного польоту (Варіант 29) ==="
+ros2 run fpv_lab2 flight_test
+========== GIT ==========
+ M run_mission.sh
+ M src/fpv_lab2/fpv_lab2/flight_test_node.py
+ D src/fpv_lab2/fpv_lab2/handlers/navigate_handler.py
+ M src/fpv_lab2/fpv_lab2/handlers/prearm_check.py
+ D src/fpv_lab2/fpv_lab2/handlers/prearm_handler.py
+ M src/fpv_lab2/fpv_lab2/handlers/taking_off.py
+ M src/fpv_lab2/fpv_lab2/handlers/waiting_for_system.py
+ M src/fpv_lab2/package.xml
+ M src/fpv_lab2/setup.py
+?? eeprom.bin
+?? mav.parm
+?? mav.tlog
+?? mav.tlog.raw
+?? terrain/
+origin	https://github.com/AnastasiaVitiv/MO.git (fetch)
+origin	https://github.com/AnastasiaVitiv/MO.git (push)
