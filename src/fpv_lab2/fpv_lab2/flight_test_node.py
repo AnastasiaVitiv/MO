@@ -1,98 +1,85 @@
-import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
+from std_srvs.srv import Trigger
+from ardupilot_msgs.msg import Status
+from ardupilot_msgs.srv import ArmMotors, ModeSwitch, Takeoff
+from .flight_state import FlightState
+from .handlers import HANDLERS
 
-from fpv_lab2.flight_state import FlightState
-from fpv_lab2.handlers.prearm_handler import PrearmHandler
-from fpv_lab2.handlers.guided_handler import GuidedHandler
-from fpv_lab2.handlers.arm_handler import ArmHandler
-from fpv_lab2.handlers.takeoff_handler import TakeoffHandler
-from fpv_lab2.handlers.navigate_handler import NavigateHandler
-from fpv_lab2.handlers.hover_handler import HoverHandler
-from fpv_lab2.handlers.land_handler import LandHandler
 class FlightTestNode(Node):
+    GUIDED_MODE = 4
+    LAND_MODE = 9
+    TAKEOFF_ALTITUDE = 2.0
+    HOVER_DURATION = 30.0
+
     def __init__(self):
-        super().__init__('flight_test')
-
+        super().__init__("flight_test")
         self.state = FlightState.WAITING_FOR_SYSTEM
+        self.request_in_progress = False
+        self.status = None
+        self.odometry = None
+        self.hover_started_at = None
+        self._handlers = HANDLERS
 
-        self.delta_x = 7.0        
-        self.delta_y = -0.5       
-        self.target_z = 2.0       
-        self.tolerance = 0.3
-        self.hover_duration = 5.0  
-        self.start_pose_saved = False
-        self.x0 = 0.0
-        self.y0 = 0.0
-        self.target_x = 0.0
-        self.target_y = 0.0
-
-        self.current_x = 0.0
-        self.current_y = 0.0
-        self.current_z = 0.0
-        self.hover_start_time = None
-
-        self.target_pose_pub = self.create_publisher(
-            PoseStamped, 
-            '/ardupilot/setpoint_pose/plugin', 
-            10
+        self.status_subscription = self.create_subscription(
+            Status,
+            "/ap/v1/status",
+            self.status_callback,
+            10,
         )
-
-        self.odom_sub = self.create_subscription(
+        self.odometry_subscription = self.create_subscription(
             Odometry,
-            '/ardupilot/odometry',
-            self.odom_callback,
-            10
+            "/odometry",
+            self.odometry_callback,
+            10,
         )
-        self.handlers = {
-            FlightState.PREARM_CHECK: PrearmHandler(self),
-            FlightState.SETTING_GUIDED: GuidedHandler(self),
-            FlightState.ARMING: ArmHandler(self),
-            FlightState.TAKING_OFF: TakeoffHandler(self),
-            FlightState.NAVIGATING_TO_TARGET: NavigateHandler(self),
-            FlightState.HOVERING: HoverHandler(self),
-            FlightState.LANDING: LandHandler(self),
-        }
+        self.prearm_client = self.create_client(
+            Trigger,
+            "/ap/v1/prearm_check",
+        )
+        self.mode_client = self.create_client(
+            ModeSwitch,
+            "/ap/v1/mode_switch",
+        )
+        self.arm_client = self.create_client(
+            ArmMotors,
+            "/ap/v1/arm_motors",
+        )
+        self.takeoff_client = self.create_client(
+            Takeoff,
+            "/ap/v1/experimental/takeoff",
+        )
+        self.timer = self.create_timer(0.2, self.control_loop)
+        self.get_logger().info("Flight test node started")
+        self.get_logger().info("Waiting for ArduPilot and ROS services...")
 
-        self.timer = self.create_timer(0.1, self.control_loop)
-        self.get_logger().info('Flight test node for Variant 29 initialized')
+    def status_callback(self, message):
+        self.status = message
 
-    def odom_callback(self, msg: Odometry):
-        self.current_x = msg.pose.pose.position.x
-        self.current_y = msg.pose.pose.position.y
-        self.current_z = msg.pose.pose.position.z
+    def odometry_callback(self, message):
+        self.odometry = message
 
-        if not self.start_pose_saved:
-            self.x0 = self.current_x
-            self.y0 = self.current_y
-            self.target_x = self.x0 + self.delta_x
-            self.target_y = self.y0 + self.delta_y
-            self.start_pose_saved = True
-            self.get_logger().info(
-                f'Start pose: ({self.x0:.2f}, {self.y0:.2f}). '
-                f'Target pose (Var 29): ({self.target_x:.2f}, {self.target_y:.2f})'
-            )
-
-    def publish_target_pose(self, x, y, z):
-        pose = PoseStamped()
-        pose.header.stamp = self.get_clock().now().to_msg()
-        pose.header.frame_id = 'map'
-        pose.pose.position.x = float(x)
-        pose.pose.position.y = float(y)
-        pose.pose.position.z = float(z)
-        self.target_pose_pub.publish(pose)
+    def services_ready(self):
+        return (
+            self.prearm_client.service_is_ready()
+            and self.mode_client.service_is_ready()
+            and self.arm_client.service_is_ready()
+            and self.takeoff_client.service_is_ready()
+        )
 
     def control_loop(self):
-        if self.state == FlightState.WAITING_FOR_SYSTEM:
-            if self.start_pose_saved:
-                self.state = FlightState.PREARM_CHECK
-            return
+        handler = self._handlers.get(self.state)
+        if handler is not None:
+            handler.handle(self)
 
-        if self.state == FlightState.FINISHED:
-            self.get_logger().info('Mission completed. Shutting down node.')
-            rclpy.shutdown()
-            return
+    def call_mode_switch(self, mode, callback):
+        self.request_in_progress = True
+        request = ModeSwitch.Request()
+        request.mode = mode
+        future = self.mode_client.call_async(request)
+        future.add_done_callback(callback)
+        self.get_logger().info(f"Requesting flight mode {mode}")
 
-        if self.state in self.handlers:
-            self.handlers[self.state].execute()
+    def fail(self, message):
+        self.get_logger().error(message)
+        self.state = FlightState.ERROR

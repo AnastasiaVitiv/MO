@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 from ardupilot_msgs.srv import Takeoff
 from ..flight_state import FlightState
 from .handler import FlightStateHandler
+
 if TYPE_CHECKING:
- from ..flight_test_node import FlightTestNode
+	from ..flight_test_node import FlightTestNode
 class TakingOffHandler(FlightStateHandler):
 	def handle(self, node: "FlightTestNode") -> None:
 		if not node.request_in_progress:

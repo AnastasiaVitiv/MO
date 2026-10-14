@@ -7,15 +7,17 @@ setup(
     version='0.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+        (
+            'share/ament_index/resource_index/packages',
+            ['resource/' + package_name],
+        ),
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='anastasia',
-    maintainer_email='anastasia@todo.todo',
-    description='TODO: Package description',
+    maintainer_email='vitiv.tuska@gmail.com',
+    description='Lab 2: autonomous drone flight using ROS 2',
     license='Apache-2.0',
     extras_require={
         'test': [
@@ -24,7 +26,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-	   'flight_test = fpv_lab2.main:main',
+            'flight_test = fpv_lab2.main:main',
         ],
     },
 )
+

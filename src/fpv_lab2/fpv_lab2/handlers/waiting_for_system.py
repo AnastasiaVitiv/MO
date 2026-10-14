@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 from ..flight_state import FlightState
 from .handler import FlightStateHandler
+
 if TYPE_CHECKING:
     from ..flight_test_node import FlightTestNode
 

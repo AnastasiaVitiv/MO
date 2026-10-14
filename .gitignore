@@ -5,3 +5,15 @@ log/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Generated ROS 2 files
+/build/
+/install/
+/log/
+**/__pycache__/
+*.py[cod]
+
+# Private credentials
+.env
+*.pem
+*.key

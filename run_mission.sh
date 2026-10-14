@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "=== 1. Зупинка попередніх процесів ==="
+echo "=== 1. Повне очищення фонових процесів ==="
 pkill -9 -f "gz|sitl|ardupilot|micro_ros_agent|rviz2|ros2" 2>/dev/null
-sleep 2
+sleep 3
 
-echo "=== 2. Експорт змінних та підключення ROS 2 ==="
+echo "=== 2. Налаштування змінних середовища та шляхів до моделей ==="
 export DISPLAY=:0
 export GZ_VERSION=harmonic
 export LIBGL_ALWAYS_SOFTWARE=1
@@ -15,10 +15,11 @@ source /opt/ros/humble/setup.bash
 source ~/ardu_ws/install/setup.bash
 source ~/fpv_labs/install/setup.bash
 
-echo "=== 3. Запуск симуляції Gazebo + ArduPilot SITL ==="
+echo "=== 3. Запуск Gazebo + ArduPilot SITL ==="
 ros2 launch ardupilot_gz_bringup iris_runway.launch.py rviz:=false &
 
-echo "=== 4. Очікування повної ініціалізації ArduPilot ==="
-sleep 50
-echo "=== 5. Запуск автономної місії ==="
+echo "=== 4. Очікування ініціалізації EKF / GPS (45 секунд) ==="
+sleep 45
+
+echo "=== 5. Запуск автономного польоту (Варіант 29) ==="
 ros2 run fpv_lab2 flight_test
