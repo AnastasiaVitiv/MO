@@ -2,6 +2,7 @@ from ..flight_state import FlightState
 from .arming import ArmingHandler
 from .handler import FlightStateHandler
 from .hovering import HoveringHandler
+from .navigate_handler import NavigateHandler
 from .landing import LandingHandler
 from .prearm_check import PrearmCheckHandler
 from .setting_guided import SettingGuidedHandler
@@ -16,6 +17,7 @@ HANDLERS = {
     FlightState.ARMING: ArmingHandler(),
     FlightState.TAKING_OFF: TakingOffHandler(),
     FlightState.HOVERING: HoveringHandler(),
+    FlightState.NAVIGATING_TO_TARGET: NavigateHandler(),
     FlightState.LANDING: LandingHandler(),
     FlightState.WAITING_FOR_LANDING: WaitingForLandingHandler(),
 }

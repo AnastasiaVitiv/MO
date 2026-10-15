@@ -1,5 +1,6 @@
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import TwistStamped
 from std_srvs.srv import Trigger
 from ardupilot_msgs.msg import Status
 from ardupilot_msgs.srv import ArmMotors, ModeSwitch, Takeoff
@@ -18,7 +19,21 @@ class FlightTestNode(Node):
         self.request_in_progress = False
         self.status = None
         self.odometry = None
+        self.takeoff_started_at = None
         self.hover_started_at = None
+
+        self.delta_x = 7.0
+        self.delta_y = 0.5
+        self.target_tolerance = 0.25
+        self.max_navigation_speed = 0.5
+        self.navigation_gain = 0.5
+
+        self.x0 = None
+        self.y0 = None
+        self.target_x = None
+        self.target_y = None
+        self.start_pose_saved = False
+        
         self._handlers = HANDLERS
 
         self.status_subscription = self.create_subscription(
@@ -31,6 +46,11 @@ class FlightTestNode(Node):
             Odometry,
             "/odometry",
             self.odometry_callback,
+            10,
+        )
+        self.cmd_vel_publisher = self.create_publisher(
+            TwistStamped,
+            "/ap/v1/cmd_vel",
             10,
         )
         self.prearm_client = self.create_client(
@@ -58,7 +78,26 @@ class FlightTestNode(Node):
 
     def odometry_callback(self, message):
         self.odometry = message
+        if self.start_pose_saved:
+            return
 
+        position = message.pose.pose.position
+
+        self.x0 = position.x
+        self.y0 = position.y
+
+        self.target_x = self.x0 - self.delta_x
+        self.target_y = self.y0 - self.delta_y
+
+        self.start_pose_saved = True
+
+        self.get_logger().info(
+            f"Start position: ({self.x0:.2f}, {self.y0:.2f})"
+        )
+        self.get_logger().info(
+            f"Target position: "
+            f"({self.target_x:.2f}, {self.target_y:.2f})"
+        )
     def services_ready(self):
         return (
             self.prearm_client.service_is_ready()

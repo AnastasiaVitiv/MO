@@ -17,3 +17,23 @@ __pycache__/
 .env
 *.pem
 *.key
+
+# ROS 2 generated files
+/build/
+/install/
+/log/
+**/__pycache__/
+*.py[cod]
+
+# SITL logs and local data
+/eeprom.bin
+/mav.parm
+/mav.tlog
+/mav.tlog.raw
+/terrain/
+/fpv_labs_diagnostics.txt
+
+# Secrets
+.env
+*.pem
+*.key

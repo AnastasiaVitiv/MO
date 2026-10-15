@@ -35,6 +35,12 @@ class TakingOffHandler(FlightStateHandler):
 			return
 
 		node.get_logger().info("Takeoff command accepted")
+		node.takeoff_started_at = time.monotonic()
+		node.hover_started_at = None
+		
+		node.get_logger().info(
+		    f"Waiting to reach attitude {node.TAKEOFF_ALTITUDE:.1f} m"
+		)
 		node.get_logger().info(
 			f"Hovering for {node.HOVER_DURATION:.1f} seconds"
 		)
